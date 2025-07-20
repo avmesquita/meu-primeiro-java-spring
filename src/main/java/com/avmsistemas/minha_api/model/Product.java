@@ -24,7 +24,7 @@ public class Product {
     @Schema(description = "Nome do produto", example = "Smartphone X")
     private String name;
 
-    @Schema(description = "Descrição detalhada do produto", example = "Um smartphone de última geração com câmera de alta resolução.")
+    @Schema(description = "Descrição detalhada do produto", example = "Smartphone de última geração com câmera de alta resolução.")
     private String description;
 
     @Schema(description = "Preço atual do produto", example = "799.99")
