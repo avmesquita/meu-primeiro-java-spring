@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,6 +36,14 @@ public class Cart {
 
     @Schema(description = "Data e hora da última atualização do carrinho")
     private LocalDateTime updatedAt;
+
+    // Relacionamento Many-to-One com User
+    // Um carrinho pertence a um usuário
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true) // user_id pode ser nulo para carrinhos de convidados
+    @JsonIgnore // Importante para evitar loops de serialização JSON
+    @Schema(description = "Usuário ao qual este carrinho pertence (opcional)")
+    private User user; // Referência ao Usuário
 
     // Relacionamento One-to-Many com CartItem
     // Um carrinho pode ter vários itens (produtos com quantidades)
@@ -70,4 +79,12 @@ public class Cart {
         items.remove(item);
         item.setCart(null); // Remove a ligação bidirecional
     }
+
+    // Construtor para facilitar a criação de um carrinho para um usuário
+    public Cart(User user) {
+        this.user = user;
+        this.status = CartStatus.PENDING;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }    
 }

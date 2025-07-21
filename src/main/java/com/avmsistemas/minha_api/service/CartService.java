@@ -5,18 +5,20 @@ import com.avmsistemas.minha_api.model.CartItem;
 import com.avmsistemas.minha_api.model.CartStatus;
 import com.avmsistemas.minha_api.model.PriceHistory;
 import com.avmsistemas.minha_api.model.Product;
+import com.avmsistemas.minha_api.model.User; // Importe a entidade User
 import com.avmsistemas.minha_api.repository.CartRepository;
 import com.avmsistemas.minha_api.repository.ProductRepository;
+import com.avmsistemas.minha_api.repository.UserRepository; // Importe o UserRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // Importe esta anotação
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import java.util.List;
 
-@Service // Indica que esta classe é um componente de serviço gerenciado pelo Spring
+@Service
 public class CartService {
 
     @Autowired
@@ -25,20 +27,71 @@ public class CartService {
     @Autowired
     private ProductRepository productRepository;
 
-    // Método para criar um novo carrinho
-    @Transactional // Garante que toda a operação ocorra em uma única transação
+    @Autowired
+    private UserRepository userRepository; // Injetar UserRepository
+
+    // Método para criar um novo carrinho (para convidado)
+    @Transactional
     public Cart createCart() {
         Cart cart = new Cart();
+        // Não associado a um usuário específico por enquanto
         return cartRepository.save(cart);
     }
 
-    // Método para obter um carrinho pelo ID
-    @Transactional(readOnly = true) // Otimiza para operações de leitura
+    @Transactional
+    public Cart createGuestCart() {
+        Cart cart = new Cart(); // Usa o construtor padrão (sem argumentos)
+        // O campo 'user' será null.
+        // O status e timestamps serão preenchidos por @PrePersist.
+        return cartRepository.save(cart);
+    }
+
+    /*
+    @Transactional
+    public Cart createCartForUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+
+        // Você pode usar o construtor de conveniência:
+        Cart cart = new Cart(user);
+        user.addCart(cart); // Garante a ligação bidirecional
+
+        // Ou usar o construtor padrão e depois o setter:
+        // Cart cart = new Cart();
+        // cart.setUser(user);
+        // user.addCart(cart);
+
+        return cartRepository.save(cart);
+    }*/
+
+    // Método para criar um novo carrinho para um usuário existente
+    @Transactional
+    public Cart createCartForUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado."));
+
+        // Opcional: Verificar se o usuário já tem um carrinho PENDING
+        Optional<Cart> existingPendingCart = cartRepository.findByUserIdAndStatus(userId, CartStatus.PENDING);
+        if (existingPendingCart.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuário já possui um carrinho PENDING ativo.");
+        }
+
+        Cart cart = new Cart(user); // Usa o novo construtor
+        user.addCart(cart); // Adiciona o carrinho ao usuário (bidirecional)
+        return cartRepository.save(cart);
+    }
+
+
+    @Transactional(readOnly = true)
     public Optional<Cart> getCartById(Long id) {
-        // Ao buscar um carrinho, se a lista de itens for acessada fora do service,
-        // pode precisar de um DTO ou de carregar eagerly, ou ainda forçar o carregamento aqui
-        // Ex: cart.ifPresent(c -> c.getItems().size());
-        return cartRepository.findById(id);
+        Optional<Cart> cart = cartRepository.findById(id);
+        cart.ifPresent(c -> {
+            c.getItems().size(); // Força o carregamento dos itens
+            if (c.getUser() != null) {
+                c.getUser().getId(); // Acessa o ID do usuário para garantir que o proxy seja inicializado se necessário em DTOs futuros
+            }
+        });
+        return cart;
     }
 
     // Método para adicionar um item ao carrinho

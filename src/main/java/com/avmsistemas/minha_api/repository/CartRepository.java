@@ -16,4 +16,9 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
 
     // Exemplo para encontrar um carrinho PENDING para um usuário (se tivesse userId)
     // Optional<Cart> findByUserIdAndStatus(Long userId, CartStatus status);
+    // Novo método para encontrar um carrinho PENDING para um usuário
+    Optional<Cart> findByUserIdAndStatus(Long userId, CartStatus status);    
+
+    // Opcional: Listar carrinhos de um usuário
+    List<Cart> findByUserId(Long userId);    
 }
