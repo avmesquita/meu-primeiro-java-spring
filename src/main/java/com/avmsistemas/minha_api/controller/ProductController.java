@@ -1,9 +1,8 @@
 package com.avmsistemas.minha_api.controller;
 
 import com.avmsistemas.minha_api.model.Product;
-import com.avmsistemas.minha_api.model.PriceHistory; // Importar PriceHistory
-import com.avmsistemas.minha_api.repository.ProductRepository;
-import com.avmsistemas.minha_api.repository.PriceHistoryRepository; // Importar PriceHistoryRepository
+import com.avmsistemas.minha_api.service.ProductService; // Importe o serviço
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,13 +10,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException; // Pode ser necessário
 
-import java.time.LocalDateTime; // Importar LocalDateTime
 import java.util.List;
 import java.util.Optional;
 
@@ -27,22 +25,18 @@ import java.util.Optional;
 public class ProductController {
 
     @Autowired
-    private ProductRepository productRepository;
+    private ProductService productService; // Injeta o serviço
 
-    @Autowired
-    private PriceHistoryRepository priceHistoryRepository; // Injetar o repositório de histórico
-
-    // GET all products - Pode precisar de DTO se o histórico for grande
     @Operation(summary = "Lista todos os produtos", description = "Retorna uma lista de todos os produtos cadastrados.")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
     @GetMapping
     public List<Product> getAllProducts() {
-        // Ao retornar Product, o histórico será lazy-loaded se acessado,
-        // mas será serializado para JSON se o Jackson estiver configurado para isso.
-        return productRepository.findAll();
+        List<Product> products = productService.getAllProducts(); // Delega para o serviço
+        // Force lazy loading of priceHistory if they are to be included in the JSON response
+        products.forEach(p -> p.getPriceHistory().size());
+        return products;
     }
 
-    // GET product by ID
     @Operation(summary = "Busca um produto por ID", description = "Retorna os detalhes de um produto específico pelo seu ID, incluindo o histórico de preços.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Produto encontrado",
@@ -51,15 +45,11 @@ public class ProductController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<Product> getProductById(@Parameter(description = "ID do produto a ser buscado", required = true) @PathVariable Long id) {
-        Optional<Product> product = productRepository.findById(id);
-        // Se você quiser garantir que o histórico seja carregado (e.g., para evitar LazyInitializationException
-        // em um contexto fora da transação, ou para incluí-lo na resposta JSON), pode fazer:
-        // product.ifPresent(p -> p.getPriceHistory().size()); // Força o carregamento
+        Optional<Product> product = productService.getProductById(id); // Delega para o serviço
         return product.map(ResponseEntity::ok)
                       .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST create new product
     @Operation(summary = "Cria um novo produto", description = "Adiciona um novo produto ao sistema e registra seu preço inicial.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Produto criado com sucesso",
@@ -69,17 +59,9 @@ public class ProductController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Product createProduct(@RequestBody Product product) {
-        // Salva o produto primeiro para que ele tenha um ID
-        Product savedProduct = productRepository.save(product);
-
-        // Registra o preço inicial no histórico
-        PriceHistory initialPrice = new PriceHistory(savedProduct.getPrice(), savedProduct);
-        savedProduct.addPriceHistory(initialPrice); // Adiciona ao produto para que o cascade salve
-
-        return productRepository.save(savedProduct); // Salva novamente para persistir o histórico
+        return productService.createProduct(product); // Delega para o serviço
     }
 
-    // PUT update product
     @Operation(summary = "Atualiza um produto existente", description = "Atualiza os detalhes de um produto existente pelo seu ID e registra a alteração de preço, se houver.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Produto atualizado com sucesso",
@@ -91,30 +73,14 @@ public class ProductController {
     public ResponseEntity<Product> updateProduct(
             @Parameter(description = "ID do produto a ser atualizado", required = true) @PathVariable Long id,
             @RequestBody Product productDetails) {
-        Optional<Product> productOptional = productRepository.findById(id);
-
-        if (productOptional.isPresent()) {
-            Product existingProduct = productOptional.get();
-
-            // Verifica se o preço foi alterado
-            if (!existingProduct.getPrice().equals(productDetails.getPrice())) {
-                // Cria um novo registro de histórico de preço
-                PriceHistory newPriceEntry = new PriceHistory(productDetails.getPrice(), existingProduct);
-                existingProduct.addPriceHistory(newPriceEntry); // Adiciona ao produto
-            }
-
-            // Atualiza os outros campos do produto
-            existingProduct.setName(productDetails.getName());
-            existingProduct.setDescription(productDetails.getDescription());
-            existingProduct.setPrice(productDetails.getPrice()); // Atualiza o preço atual
-
-            return ResponseEntity.ok(productRepository.save(existingProduct)); // Salva o produto e o novo histórico
-        } else {
-            return ResponseEntity.notFound().build();
+        try {
+            Product updatedProduct = productService.updateProduct(id, productDetails); // Delega para o serviço
+            return ResponseEntity.ok(updatedProduct);
+        } catch (ResponseStatusException e) {
+            throw e; // Lança a exceção para que o Spring a trate
         }
     }
 
-    // DELETE product - Não precisa de alteração, cascade cuidará do histórico
     @Operation(summary = "Exclui um produto", description = "Remove um produto do sistema pelo seu ID.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Produto excluído com sucesso"),
@@ -124,11 +90,11 @@ public class ProductController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteProduct(
             @Parameter(description = "ID do produto a ser excluído", required = true) @PathVariable Long id) {
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
+        try {
+            productService.deleteProduct(id); // Delega para o serviço
             return ResponseEntity.noContent().build();
-        } else {
-            return ResponseEntity.notFound().build();
+        } catch (ResponseStatusException e) {
+            throw e;
         }
     }
 }
