@@ -12,8 +12,8 @@ public class OpenApiConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("API de Produtos e Saudações")
+                        .title("API de Estudo do Java Spring")
                         .version("1.0")
-                        .description("Esta é uma API de exemplo para gerenciamento de produtos e saudações."));
+                        .description("Esta é uma API de exemplo para estudo."));
     }
 }
