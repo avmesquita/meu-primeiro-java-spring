@@ -1,5 +1,8 @@
 # meu-primeiro-java-spring
 
+## Github Actions Status
+
+![Docker Generation](https://github.com/avmesquita/meu-primeiro-java-spring/actions/workflows/docker-image.yml/badge.svg)
 
 ## Sequencia do Estudo
 - O inicio ocorreu com um cadastro de produtos. 
