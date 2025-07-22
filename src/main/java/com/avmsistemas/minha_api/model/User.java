@@ -25,7 +25,7 @@ public class User {
 
     @Column(unique = true, nullable = false)
     @Schema(description = "Endereço de e-mail do usuário (único)", example = "usuario@example.com")
-    private String email;
+    private String primaryEmail;
 
     @Column(nullable = false)
     @Schema(description = "Nome de usuário", example = "john_doe")
@@ -37,6 +37,22 @@ public class User {
 
     @Schema(description = "Nome completo do usuário", example = "João da Silva")
     private String fullName;
+
+    // --- Novas coleções de contatos ---
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Schema(description = "Lista de telefones associados a este usuário")
+    private List<Phone> phones = new ArrayList<>();
+
+    // O primaryEmail acima é para o e-mail de login.
+    // Esta lista é para e-mails adicionais, como "contato@", "trabalho@" etc.
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Schema(description = "Lista de e-mails adicionais associados a este usuário")
+    private List<Email> additionalEmails = new ArrayList<>(); // Renomeado para evitar conflito com 'email'
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @Schema(description = "Lista de endereços associados a este usuário")
+    private List<Address> addresses = new ArrayList<>();
+    // --- Fim das novas coleções ---
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Schema(description = "Lista de carrinhos associados a este usuário")
@@ -61,10 +77,40 @@ public class User {
 
     // Construtor sem ID e timestamps para facilitar a criação inicial
     public User(String email, String username, String password, String fullName) {
-        this.email = email;
+        this.primaryEmail = email;
         this.username = username;
         this.password = password;
         this.fullName = fullName;
+    }
+
+    public void addPhone(Phone phone) {
+        phones.add(phone);
+        phone.setUser(this);
+    }    
+
+    public void removePhone(Phone phone) {
+        phones.remove(phone);
+        phone.setUser(null);
+    }
+
+    public void addEmail(Email email) {
+        additionalEmails.add(email);
+        email.setUser(this);
+    }
+
+    public void removeEmail(Email email) {
+        additionalEmails.remove(email);
+        email.setUser(null);
+    }
+
+    public void addAddress(Address address) {
+        addresses.add(address);
+        address.setUser(this);
+    }
+
+    public void removeAddress(Address address) {
+        addresses.remove(address);
+        address.setUser(null);
     }
 
     // Método auxiliar para adicionar um carrinho (bidirecional)
