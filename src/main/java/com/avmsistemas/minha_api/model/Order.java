@@ -73,10 +73,11 @@ public class Order {
     // Construtor para facilitar a criação inicial
     public Order(User user, String deliveryStreet, String deliveryNumber, String deliveryComplement,
                  String deliveryNeighborhood, String deliveryCity, String deliveryState,
-                 String deliveryZipCode, String deliveryCountry, BigDecimal totalAmount) {
+                 String deliveryZipCode, String deliveryCountry, BigDecimal totalAmount,
+                 PaymentMethod paymentMethod) { // Adicionado paymentMethod
         this.user = user;
-        this.orderDate = LocalDateTime.now();
-        this.status = OrderStatus.PENDING; // Status inicial
+        this.orderDate = LocalDateTime.now(); // Definido automaticamente
+        this.status = OrderStatus.PENDING; // Status inicial definido automaticamente
         this.deliveryStreet = deliveryStreet;
         this.deliveryNumber = deliveryNumber;
         this.deliveryComplement = deliveryComplement;
@@ -86,7 +87,8 @@ public class Order {
         this.deliveryZipCode = deliveryZipCode;
         this.deliveryCountry = deliveryCountry;
         this.totalAmount = totalAmount;        
-        this.paymentStatus = PaymentStatus.PENDING;
+        this.paymentStatus = PaymentStatus.PENDING; // Status de pagamento inicial definido automaticamente
+        this.paymentMethod = paymentMethod; // Agora aceita o método de pagamento
     }
 
     // Métodos auxiliares para adicionar/remover OrderItems (bidirecional)

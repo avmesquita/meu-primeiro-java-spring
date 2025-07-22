@@ -68,7 +68,8 @@ public class OrderService {
                 deliveryAddress.getState(),
                 deliveryAddress.getZipCode(),
                 deliveryAddress.getCountry(),
-                cart.getTotalAmount() // Total do carrinho                
+                cart.getTotalAmount(), // Total do carrinho                
+                PaymentMethod.OTHER
         );
 
         // 2. Copiar Itens do Carrinho para Itens do Pedido

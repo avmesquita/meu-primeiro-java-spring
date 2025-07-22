@@ -1,8 +1,10 @@
 package com.avmsistemas.minha_api.controller;
 
 import com.avmsistemas.minha_api.model.Product;
+import com.avmsistemas.minha_api.model.Category;
 import com.avmsistemas.minha_api.model.PriceHistory; // Importar PriceHistory
 import com.avmsistemas.minha_api.repository.ProductRepository;
+import com.avmsistemas.minha_api.repository.CategoryRepository;
 import com.avmsistemas.minha_api.repository.PriceHistoryRepository; // Importar PriceHistoryRepository
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +17,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 import java.math.BigDecimal;
-import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -40,6 +41,10 @@ class ProductControllerTest {
     private PriceHistoryRepository priceHistoryRepository; // Injetar o repositório de histórico
 
     @Autowired
+    private CategoryRepository categoryRepository; // Injetar o repositório de histórico
+
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @BeforeEach
@@ -50,11 +55,14 @@ class ProductControllerTest {
 
     @Test
     void shouldGetAllProducts() throws Exception {
-        Product p1 = productRepository.save(new Product(null, "Laptop", "Powerful laptop", new BigDecimal("1200.00")));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product p1 = productRepository.save(new Product("Laptop", "Powerful laptop", new BigDecimal("1200.00"), "http://example.com/laptop.jpg", electronics));
         p1.addPriceHistory(new PriceHistory(new BigDecimal("1200.00"), p1));
         productRepository.save(p1);
 
-        Product p2 = productRepository.save(new Product(null, "Mouse", "Gaming mouse", new BigDecimal("50.00")));
+        Product p2 = productRepository.save(new Product("Mouse", "Gaming mouse", new BigDecimal("50.00"), "http://example.com/mouse.jpg", electronics));
         p2.addPriceHistory(new PriceHistory(new BigDecimal("50.00"), p2));
         productRepository.save(p2);
 
@@ -70,7 +78,10 @@ class ProductControllerTest {
 
     @Test
     void shouldGetProductById() throws Exception {
-        Product savedProduct = productRepository.save(new Product(null, "Keyboard", "Mechanical keyboard", new BigDecimal("100.00")));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product savedProduct = productRepository.save(new Product("Keyboard", "Mechanical keyboard", new BigDecimal("100.00"), "http://example.com/keyboard.jpg", electronics));
         savedProduct.addPriceHistory(new PriceHistory(new BigDecimal("100.00"), savedProduct));
         productRepository.save(savedProduct);
 
@@ -85,7 +96,10 @@ class ProductControllerTest {
 
     @Test
     void shouldCreateProduct() throws Exception {
-        Product newProduct = new Product(null, "Monitor", "4K Monitor", new BigDecimal("300.00"));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product newProduct = new Product("Monitor", "4K Monitor", new BigDecimal("300.00"),"", electronics);
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -103,11 +117,14 @@ class ProductControllerTest {
 
     @Test
     void shouldUpdateProductPrice() throws Exception {
-        Product existingProduct = productRepository.save(new Product(null, "Old Product", "Old description", new BigDecimal("10.00")));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product existingProduct = productRepository.save(new Product("Old Product", "Old description", new BigDecimal("10.00"), "", electronics));
         existingProduct.addPriceHistory(new PriceHistory(new BigDecimal("10.00"), existingProduct));
         productRepository.save(existingProduct); // Salva o produto com o histórico inicial
 
-        Product updatedProductDetails = new Product(null, "New Product", "New description", new BigDecimal("20.00"));
+        Product updatedProductDetails = new Product("New Product", "New description", new BigDecimal("20.00"), "", electronics);
 
      mockMvc.perform(put("/api/products/{id}", existingProduct.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -131,11 +148,14 @@ class ProductControllerTest {
     
     @Test
     void shouldUpdateProductWithoutPriceChange() throws Exception {
-        Product existingProduct = productRepository.save(new Product(null, "Product No Change", "Description", new BigDecimal("100.00")));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product existingProduct = productRepository.save(new Product("Product No Change", "Description", new BigDecimal("100.00"), "", electronics));
         existingProduct.addPriceHistory(new PriceHistory(new BigDecimal("100.00"), existingProduct));
         productRepository.save(existingProduct);
 
-        Product updatedProductDetails = new Product(null, "Product No Change Updated", "New Description", new BigDecimal("100.00")); // Mesmo preço
+        Product updatedProductDetails = new Product("Product No Change Updated", "New Description", new BigDecimal("100.00"), "",electronics); // Mesmo preço
 
         mockMvc.perform(put("/api/products/{id}", existingProduct.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,7 +167,10 @@ class ProductControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistingProduct() throws Exception {
-        Product nonExistingProduct = new Product(null, "Non Existent", "N/A", new BigDecimal("1.00"));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product nonExistingProduct = new Product("Non Existent", "N/A", new BigDecimal("1.00"), "", electronics);
 
         mockMvc.perform(put("/api/products/{id}", 999L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -157,7 +180,10 @@ class ProductControllerTest {
 
     @Test
     void shouldDeleteProduct() throws Exception {
-        Product productToDelete = productRepository.save(new Product(null, "To Be Deleted", "...", new BigDecimal("5.00")));
+        Category electronics = new Category("Eletrônicos"); // Crie ou recupere sua categoria
+        electronics = categoryRepository.save(electronics); 
+
+        Product productToDelete = productRepository.save(new Product("To Be Deleted", "...", new BigDecimal("5.00"), "", electronics));
         productToDelete.addPriceHistory(new PriceHistory(new BigDecimal("5.00"), productToDelete));
         productRepository.save(productToDelete); // Garante que há histórico para ser deletado em cascata
 

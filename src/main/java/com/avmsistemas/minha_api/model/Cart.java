@@ -53,6 +53,7 @@ public class Cart {
     public Cart(User user) {
         this.user = user;
         this.totalAmount = BigDecimal.ZERO;
+        this.status = CartStatus.PENDING;
     }
 
     // Métodos auxiliares
