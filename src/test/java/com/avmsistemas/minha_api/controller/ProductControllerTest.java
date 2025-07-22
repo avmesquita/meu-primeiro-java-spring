@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
+import java.math.BigDecimal;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
@@ -49,12 +50,12 @@ class ProductControllerTest {
 
     @Test
     void shouldGetAllProducts() throws Exception {
-        Product p1 = productRepository.save(new Product(null, "Laptop", "Powerful laptop", 1200.00));
-        p1.addPriceHistory(new PriceHistory(1200.00, p1));
+        Product p1 = productRepository.save(new Product(null, "Laptop", "Powerful laptop", new BigDecimal("1200.00")));
+        p1.addPriceHistory(new PriceHistory(new BigDecimal("1200.00"), p1));
         productRepository.save(p1);
 
-        Product p2 = productRepository.save(new Product(null, "Mouse", "Gaming mouse", 50.00));
-        p2.addPriceHistory(new PriceHistory(50.00, p2));
+        Product p2 = productRepository.save(new Product(null, "Mouse", "Gaming mouse", new BigDecimal("50.00")));
+        p2.addPriceHistory(new PriceHistory(new BigDecimal("50.00"), p2));
         productRepository.save(p2);
 
         mockMvc.perform(get("/api/products")
@@ -69,8 +70,8 @@ class ProductControllerTest {
 
     @Test
     void shouldGetProductById() throws Exception {
-        Product savedProduct = productRepository.save(new Product(null, "Keyboard", "Mechanical keyboard", 100.00));
-        savedProduct.addPriceHistory(new PriceHistory(100.00, savedProduct));
+        Product savedProduct = productRepository.save(new Product(null, "Keyboard", "Mechanical keyboard", new BigDecimal("100.00")));
+        savedProduct.addPriceHistory(new PriceHistory(new BigDecimal("100.00"), savedProduct));
         productRepository.save(savedProduct);
 
         mockMvc.perform(get("/api/products/{id}", savedProduct.getId())
@@ -84,7 +85,7 @@ class ProductControllerTest {
 
     @Test
     void shouldCreateProduct() throws Exception {
-        Product newProduct = new Product(null, "Monitor", "4K Monitor", 300.00);
+        Product newProduct = new Product(null, "Monitor", "4K Monitor", new BigDecimal("300.00"));
 
         mockMvc.perform(post("/api/products")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -102,11 +103,11 @@ class ProductControllerTest {
 
     @Test
     void shouldUpdateProductPrice() throws Exception {
-        Product existingProduct = productRepository.save(new Product(null, "Old Product", "Old description", 10.00));
-        existingProduct.addPriceHistory(new PriceHistory(10.00, existingProduct));
+        Product existingProduct = productRepository.save(new Product(null, "Old Product", "Old description", new BigDecimal("10.00")));
+        existingProduct.addPriceHistory(new PriceHistory(new BigDecimal("10.00"), existingProduct));
         productRepository.save(existingProduct); // Salva o produto com o histórico inicial
 
-        Product updatedProductDetails = new Product(null, "New Product", "New description", 20.00);
+        Product updatedProductDetails = new Product(null, "New Product", "New description", new BigDecimal("20.00"));
 
      mockMvc.perform(put("/api/products/{id}", existingProduct.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -130,11 +131,11 @@ class ProductControllerTest {
     
     @Test
     void shouldUpdateProductWithoutPriceChange() throws Exception {
-        Product existingProduct = productRepository.save(new Product(null, "Product No Change", "Description", 100.00));
-        existingProduct.addPriceHistory(new PriceHistory(100.00, existingProduct));
+        Product existingProduct = productRepository.save(new Product(null, "Product No Change", "Description", new BigDecimal("100.00")));
+        existingProduct.addPriceHistory(new PriceHistory(new BigDecimal("100.00"), existingProduct));
         productRepository.save(existingProduct);
 
-        Product updatedProductDetails = new Product(null, "Product No Change Updated", "New Description", 100.00); // Mesmo preço
+        Product updatedProductDetails = new Product(null, "Product No Change Updated", "New Description", new BigDecimal("100.00")); // Mesmo preço
 
         mockMvc.perform(put("/api/products/{id}", existingProduct.getId())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -146,7 +147,7 @@ class ProductControllerTest {
 
     @Test
     void shouldReturnNotFoundWhenUpdatingNonExistingProduct() throws Exception {
-        Product nonExistingProduct = new Product(null, "Non Existent", "N/A", 1.00);
+        Product nonExistingProduct = new Product(null, "Non Existent", "N/A", new BigDecimal("1.00"));
 
         mockMvc.perform(put("/api/products/{id}", 999L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -156,8 +157,8 @@ class ProductControllerTest {
 
     @Test
     void shouldDeleteProduct() throws Exception {
-        Product productToDelete = productRepository.save(new Product(null, "To Be Deleted", "...", 5.00));
-        productToDelete.addPriceHistory(new PriceHistory(5.00, productToDelete));
+        Product productToDelete = productRepository.save(new Product(null, "To Be Deleted", "...", new BigDecimal("5.00")));
+        productToDelete.addPriceHistory(new PriceHistory(new BigDecimal("5.00"), productToDelete));
         productRepository.save(productToDelete); // Garante que há histórico para ser deletado em cascata
 
         mockMvc.perform(delete("/api/products/{id}", productToDelete.getId()))

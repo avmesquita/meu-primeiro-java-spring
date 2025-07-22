@@ -1,90 +1,74 @@
 package com.avmsistemas.minha_api.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import io.swagger.v3.oas.annotations.media.Schema;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Table(name = "carts")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Representa um carrinho de compras de um usuário")
 public class Cart {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Schema(description = "ID único do carrinho", example = "1")
     private Long id;
 
-    @Enumerated(EnumType.STRING) // Armazena o enum como String no DB
-    @Schema(description = "Status atual do carrinho", example = "PENDING")
-    private CartStatus status; // PENDING, COMPLETED, ABANDONED
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
+    private User user;
 
-    @Column(columnDefinition = "TEXT") // Para armazenar texto longo
-    @Schema(description = "Instruções ou detalhes de pagamento", example = "Cartão de Crédito Visa ****1234")
-    private String paymentInstructions;
-
-    @Schema(description = "Data e hora da criação do carrinho")
-    private LocalDateTime createdAt;
-
-    @Schema(description = "Data e hora da última atualização do carrinho")
-    private LocalDateTime updatedAt;
-
-    // Relacionamento Many-to-One com User
-    // Um carrinho pertence a um usuário
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = true) // user_id pode ser nulo para carrinhos de convidados
-    @JsonIgnore // Importante para evitar loops de serialização JSON
-    @Schema(description = "Usuário ao qual este carrinho pertence (opcional)")
-    private User user; // Referência ao Usuário
-
-    // Relacionamento One-to-Many com CartItem
-    // Um carrinho pode ter vários itens (produtos com quantidades)
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @Schema(description = "Lista de itens no carrinho")
     private List<CartItem> items = new ArrayList<>();
 
-    // Opcional: Para associar um carrinho a um usuário (futuro)
-    // private Long userId;
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    @PrePersist // Executado antes de salvar a primeira vez
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-        if (this.status == null) {
-            this.status = CartStatus.PENDING; // Define status padrão
-        }
-    }
+    @UpdateTimestamp
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
 
-    @PreUpdate // Executado antes de atualizar
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal totalAmount;
 
-    // Método auxiliar para adicionar um item ao carrinho
-    public void addItem(CartItem item) {
-        items.add(item);
-        item.setCart(this); // Garante a ligação bidirecional
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CartStatus status; 
 
-    // Método auxiliar para remover um item do carrinho
-    public void removeItem(CartItem item) {
-        items.remove(item);
-        item.setCart(null); // Remove a ligação bidirecional
-    }
+    // NOVO: Adiciona um link para o Order gerado a partir deste carrinho (opcional)
+    @OneToOne(mappedBy = "cart", cascade = CascadeType.ALL, fetch = FetchType.LAZY) // Mapeado por "cart" no Order
+    private Order order; // Opcional, será setado quando o carrinho for finalizado
 
-    // Construtor para facilitar a criação de um carrinho para um usuário
+    // Construtor
     public Cart(User user) {
         this.user = user;
-        this.status = CartStatus.PENDING;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }    
+        this.totalAmount = BigDecimal.ZERO;
+    }
+
+    // Métodos auxiliares
+    public void addCartItem(CartItem item) {
+        this.items.add(item);
+        item.setCart(this);
+    }
+
+    public void removeCartItem(CartItem item) {
+        this.items.remove(item);
+        item.setCart(null);
+    }
+
+    public void calculateTotal() {
+        this.totalAmount = items.stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
 }

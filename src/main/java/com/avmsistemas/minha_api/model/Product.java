@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,14 +29,18 @@ public class Product {
     private String description;
 
     @Schema(description = "Preço atual do produto", example = "799.99")
-    private Double price; // Este continua sendo o preço atual
+    private BigDecimal price; // Este continua sendo o preço atual
+
+    @Schema(description = "URL da Imagem do Produto", example = "http://localhost/assets/image.jpg")
+    @Column(length = 2048) // URL pode ser longa, ajuste o tamanho se necessário
+    private String imageUrl; // URL para a imagem do produto
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @Schema(description = "Histórico de preços do produto")
     private List<PriceHistory> priceHistory = new ArrayList<>(); // Inicializa a lista
 
     // Construtor para criação de produto, sem o histórico inicialmente
-    public Product(Long id, String name, String description, Double price) {
+    public Product(Long id, String name, String description, BigDecimal price) {
         this.id = id;
         this.name = name;
         this.description = description;

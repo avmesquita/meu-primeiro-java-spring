@@ -4,8 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonIgnore; 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -18,7 +19,7 @@ public class PriceHistory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double price;
+    private BigDecimal price;
 
     private LocalDateTime changeDate; // Data e hora da alteração do preço
 
@@ -28,7 +29,7 @@ public class PriceHistory {
     private Product product; // Referência ao produto ao qual este histórico pertence
 
     // Construtor para facilitar a criação de novos registros de histórico
-    public PriceHistory(Double price, Product product) {
+    public PriceHistory(BigDecimal price, Product product) {
         this.price = price;
         this.changeDate = LocalDateTime.now(); // Define a data/hora atual
         this.product = product;
