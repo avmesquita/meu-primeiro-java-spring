@@ -2,9 +2,11 @@ package com.avmsistemas.minha_api.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import io.swagger.v3.oas.annotations.media.Schema;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Schema(description = "Detalhes de um produto no sistema")
 public class Product {
 
@@ -39,14 +42,19 @@ public class Product {
     @Schema(description = "Histórico de preços do produto")
     private List<PriceHistory> priceHistory = new ArrayList<>(); // Inicializa a lista
 
-    // Construtor para criação de produto, sem o histórico inicialmente
-    public Product(Long id, String name, String description, BigDecimal price) {
-        this.id = id;
+    // Relacionamento muitos-para-um com Category (muitos produtos para uma categoria)
+    @ManyToOne(fetch = FetchType.LAZY) // Lazy loading para otimização
+    @JoinColumn(name = "category_id") // Coluna na tabela 'products' que referencia 'categories'
+    @JsonBackReference // Importante para evitar recursão infinita no JSON
+    private Category category;    
+
+    public Product(String name, String description, BigDecimal price, String imageUrl, Category category) {
         this.name = name;
         this.description = description;
         this.price = price;
-        this.priceHistory = new ArrayList<>(); // Garante que a lista não seja nula
-    }
+        this.imageUrl = imageUrl;
+        this.category = category;
+    }    
 
     // Método auxiliar para adicionar um registro ao histórico de preços
     public void addPriceHistory(PriceHistory history) {

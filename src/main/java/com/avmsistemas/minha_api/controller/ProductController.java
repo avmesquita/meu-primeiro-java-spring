@@ -30,7 +30,10 @@ public class ProductController {
     @Operation(summary = "Lista todos os produtos", description = "Retorna uma lista de todos os produtos cadastrados.")
     @ApiResponse(responseCode = "200", description = "Lista de produtos retornada com sucesso")
     @GetMapping
-    public List<Product> getAllProducts() {
+    public List<Product> getAllProducts(@RequestParam(required = false) Long categoryId) {
+        if (categoryId != null) {
+            return productService.getProductsByCategoryId(categoryId);
+        }
         List<Product> products = productService.getAllProducts(); // Delega para o serviço
         // Force lazy loading of priceHistory if they are to be included in the JSON response
         products.forEach(p -> p.getPriceHistory().size());

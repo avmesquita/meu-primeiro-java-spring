@@ -1,8 +1,4 @@
-# meu-primeiro-java-spring
-
-## Github Actions Status
-
-![Docker Generation](https://github.com/avmesquita/meu-primeiro-java-spring/actions/workflows/docker-image.yml/badge.svg)
+# e-commerce
 
 ## Sequencia do Estudo
 - O inicio ocorreu com um cadastro de produtos. 
@@ -11,3 +7,8 @@
 - Por fim, foi implementado a possibilidade de vínculo de um usuário ao carrinho de compras.
 - Incluir em usuário, telefones, emails e endereços e um uso melhor do pattern NESTED RESOURCES.
 - Incluir entidade para representar o pedido, assim como informação de pagamento.
+- Configuração de CORS, Inclusão de Categorias e mockup de produtos e categorias
+
+## Github Actions Status
+
+![Docker Generation](https://github.com/avmesquita/meu-primeiro-java-spring/actions/workflows/docker-image.yml/badge.svg)

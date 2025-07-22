@@ -54,6 +54,8 @@ public class ProductService {
             existingProduct.setName(productDetails.getName());
             existingProduct.setDescription(productDetails.getDescription());
             existingProduct.setPrice(productDetails.getPrice());
+            existingProduct.setImageUrl(productDetails.getImageUrl());
+            existingProduct.setCategory(productDetails.getCategory());
 
             return productRepository.save(existingProduct);
         } else {
@@ -68,4 +70,8 @@ public class ProductService {
         }
         productRepository.deleteById(id);
     }
+
+    public List<Product> getProductsByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId);
+    }    
 }

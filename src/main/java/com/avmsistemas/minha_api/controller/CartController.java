@@ -2,6 +2,7 @@ package com.avmsistemas.minha_api.controller;
 
 import com.avmsistemas.minha_api.model.Cart;
 import com.avmsistemas.minha_api.model.Order; // Importe
+import com.avmsistemas.minha_api.repository.ProductRepository;
 import com.avmsistemas.minha_api.service.CartService;
 import com.avmsistemas.minha_api.service.OrderService; // Importe o OrderService
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +28,8 @@ public class CartController {
     private CartService cartService;
     @Autowired
     private OrderService orderService; // Injeta o OrderService
+    @Autowired
+    private ProductRepository productRepository;
 
     @Operation(summary = "Adiciona um item ao carrinho", description = "Adiciona ou atualiza a quantidade de um produto no carrinho de um usuário.")
     @ApiResponses(value = {
@@ -114,5 +117,11 @@ public class CartController {
             @Parameter(description = "ID do endereço de entrega selecionado") @RequestParam Long deliveryAddressId) {
         Order newOrder = orderService.createOrderFromCart(userId, cartId, deliveryAddressId);
         return ResponseEntity.ok(newOrder); // Retorna 200 OK, embora 201 Created também seja aceitável
+    }
+   
+    @PostMapping
+    public ResponseEntity<Cart> createCart() {
+      Cart newCart = cartService.createEmptyCart(); // Seu serviço cria um carrinho e salva
+      return ResponseEntity.status(HttpStatus.CREATED).body(newCart);
     }
 }

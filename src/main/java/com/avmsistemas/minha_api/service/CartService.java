@@ -130,4 +130,9 @@ public class CartService {
     public Optional<Cart> getCartByUserId(Long userId) {
         return cartRepository.findByUserId(userId);
     }
+
+    public Cart createEmptyCart() {        
+        Cart cart = new Cart();
+        return cartRepository.save(cart);
+    }
 }

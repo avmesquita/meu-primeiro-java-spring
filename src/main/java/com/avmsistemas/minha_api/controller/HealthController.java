@@ -9,7 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @Tag(name = "Health", description = "Valida se o serviço está a funcionar")
 public class HealthController {
 
-    // Define um endpoint GET em /hello
+    // Define um endpoint GET em /health
     @GetMapping("/health")
     public Boolean health() {
         return true;
