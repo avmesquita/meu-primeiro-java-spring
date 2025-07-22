@@ -1,8 +1,5 @@
 package com.avmsistemas.minha_api.dto;
 
-import com.avmsistemas.minha_api.model.Phone;
-import com.avmsistemas.minha_api.model.Email;
-import com.avmsistemas.minha_api.model.Address;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 

@@ -1,9 +1,9 @@
 package com.avmsistemas.minha_api.controller;
 
 import com.avmsistemas.minha_api.model.Cart;
-import com.avmsistemas.minha_api.model.CartStatus;
+import com.avmsistemas.minha_api.model.Order; // Importe
 import com.avmsistemas.minha_api.service.CartService;
-
+import com.avmsistemas.minha_api.service.OrderService; // Importe o OrderService
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,115 +16,103 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/carts")
-@Tag(name = "Carrinhos de Compras", description = "Operações para gerenciamento de carrinhos de compras")
+@RequestMapping("/api/users/{userId}/cart")
+@Tag(name = "Carrinhos", description = "Operações para gerenciamento do carrinho de compras do usuário")
 public class CartController {
 
     @Autowired
-    private CartService cartService; // Injeta o serviço
+    private CartService cartService;
+    @Autowired
+    private OrderService orderService; // Injeta o OrderService
 
-    // DTOs permanecem no controller ou em um pacote de DTOs separados
-    @Schema(description = "Objeto para adicionar um produto ao carrinho")
-    public static class AddItemToCartRequest {
-        @Schema(description = "ID do produto a ser adicionado", example = "1")
-        public Long productId;
-        @Schema(description = "Quantidade do produto", example = "1")
-        public Integer quantity;
-    }
-
-    @Schema(description = "Objeto para atualizar o status do carrinho")
-    public static class UpdateCartStatusRequest {
-        @Schema(description = "Novo status do carrinho", example = "COMPLETED")
-        public CartStatus status;
-        @Schema(description = "Instruções de pagamento (apenas se status for COMPLETED)", example = "Cartão de crédito via Stripe")
-        public String paymentInstructions;
-    }
-
-    @Operation(summary = "Cria um novo carrinho de compras")
-    @ApiResponse(responseCode = "201", description = "Carrinho criado com sucesso", content = @Content(schema = @Schema(implementation = Cart.class)))
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Cart createCart() {
-        return cartService.createCart(); // Delega para o serviço
-    }
-
-    @Operation(summary = "Obtém um carrinho pelo ID")
+    @Operation(summary = "Adiciona um item ao carrinho", description = "Adiciona ou atualiza a quantidade de um produto no carrinho de um usuário.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Carrinho encontrado", content = @Content(schema = @Schema(implementation = Cart.class))),
-            @ApiResponse(responseCode = "404", description = "Carrinho não encontrado")
-    })
-    @GetMapping("/{id}")
-    public ResponseEntity<Cart> getCartById(@Parameter(description = "ID do carrinho") @PathVariable Long id) {
-        Optional<Cart> cart = cartService.getCartById(id); // Delega para o serviço
-        // Force lazy loading of items if they are to be included in the JSON response
-        // Isso ainda pode ser necessário aqui, pois a serialização ocorre após o serviço
-        // Ou, uma solução melhor é fazer com que o serviço retorne um DTO já com os itens carregados.
-        cart.ifPresent(c -> c.getItems().size());
-        return cart.map(ResponseEntity::ok)
-                   .orElse(ResponseEntity.notFound().build());
-    }
-
-    @Operation(summary = "Adiciona um item a um carrinho existente")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Item adicionado com sucesso", content = @Content(schema = @Schema(implementation = Cart.class))),
-            @ApiResponse(responseCode = "404", description = "Carrinho ou Produto não encontrado"),
+            @ApiResponse(responseCode = "200", description = "Item adicionado/atualizado com sucesso", content = @Content(schema = @Schema(implementation = Cart.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário ou produto não encontrado"),
             @ApiResponse(responseCode = "400", description = "Quantidade inválida")
     })
-    @PostMapping("/{cartId}/items")
+    @PostMapping("/items")
     public ResponseEntity<Cart> addItemToCart(
-            @Parameter(description = "ID do carrinho") @PathVariable Long cartId,
-            @RequestBody AddItemToCartRequest request) {
-        Cart updatedCart = cartService.addItemToCart(cartId, request.productId, request.quantity); // Delega para o serviço
-        updatedCart.getItems().size(); // Força o carregamento para serialização JSON
+            @Parameter(description = "ID do usuário") @PathVariable Long userId,
+            @Parameter(description = "ID do produto") @RequestParam Long productId,
+            @Parameter(description = "Quantidade a ser adicionada/atualizada") @RequestParam Integer quantity) {
+        Cart updatedCart = cartService.addItemToCart(userId, productId, quantity);
         return ResponseEntity.ok(updatedCart);
     }
 
-    @Operation(summary = "Atualiza a quantidade de um item no carrinho ou remove-o")
+    @Operation(summary = "Atualiza a quantidade de um item no carrinho", description = "Atualiza a quantidade de um produto específico no carrinho de um usuário. Se a quantidade for 0, o item é removido.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Quantidade do item atualizada", content = @Content(schema = @Schema(implementation = Cart.class))),
-            @ApiResponse(responseCode = "404", description = "Carrinho ou Item do Carrinho não encontrado"),
+            @ApiResponse(responseCode = "200", description = "Quantidade do item atualizada com sucesso", content = @Content(schema = @Schema(implementation = Cart.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário, carrinho ou item não encontrado"),
             @ApiResponse(responseCode = "400", description = "Quantidade inválida")
     })
-    @PutMapping("/{cartId}/items/{itemId}")
+    @PutMapping("/items/{productId}")
     public ResponseEntity<Cart> updateCartItemQuantity(
-            @Parameter(description = "ID do carrinho") @PathVariable Long cartId,
-            @Parameter(description = "ID do item do carrinho") @PathVariable Long itemId,
-            @Parameter(description = "Nova quantidade do item (0 para remover)", example = "3") @RequestParam Integer quantity) {
-        Cart updatedCart = cartService.updateCartItemQuantity(cartId, itemId, quantity); // Delega para o serviço
-        updatedCart.getItems().size(); // Força o carregamento
+            @Parameter(description = "ID do usuário") @PathVariable Long userId,
+            @Parameter(description = "ID do produto no carrinho") @PathVariable Long productId,
+            @Parameter(description = "Nova quantidade do produto") @RequestParam Integer newQuantity) {
+        Cart updatedCart = cartService.updateCartItemQuantity(userId, productId, newQuantity);
         return ResponseEntity.ok(updatedCart);
     }
 
-    @Operation(summary = "Remove um item específico de um carrinho")
+    @Operation(summary = "Remove um item do carrinho", description = "Remove um produto específico do carrinho de um usuário.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Item removido com sucesso"),
-            @ApiResponse(responseCode = "404", description = "Carrinho ou Item do Carrinho não encontrado")
+            @ApiResponse(responseCode = "404", description = "Usuário, carrinho ou item não encontrado")
     })
-    @DeleteMapping("/{cartId}/items/{itemId}")
+    @DeleteMapping("/items/{productId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> removeCartItem(
-            @Parameter(description = "ID do carrinho") @PathVariable Long cartId,
-            @Parameter(description = "ID do item do carrinho") @PathVariable Long itemId) {
-        cartService.removeCartItem(cartId, itemId); // Delega para o serviço
+            @Parameter(description = "ID do usuário") @PathVariable Long userId,
+            @Parameter(description = "ID do produto a ser removido") @PathVariable Long productId) {
+        cartService.removeCartItem(userId, productId);
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Atualiza o status de um carrinho (finalizar, abandonar, etc.)")
+    @Operation(summary = "Limpa o carrinho", description = "Remove todos os itens do carrinho de um usuário.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Status do carrinho atualizado", content = @Content(schema = @Schema(implementation = Cart.class))),
-            @ApiResponse(responseCode = "404", description = "Carrinho não encontrado"),
-            @ApiResponse(responseCode = "400", description = "Status inválido para a transição")
+            @ApiResponse(responseCode = "204", description = "Carrinho limpo com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Usuário ou carrinho não encontrado")
     })
-    @PutMapping("/{cartId}/status")
-    public ResponseEntity<Cart> updateCartStatus(
-            @Parameter(description = "ID do carrinho") @PathVariable Long cartId,
-            @RequestBody UpdateCartStatusRequest request) {
-        Cart updatedCart = cartService.updateCartStatus(cartId, request.status, request.paymentInstructions); // Delega para o serviço
-        updatedCart.getItems().size(); // Força o carregamento
-        return ResponseEntity.ok(updatedCart);
+    @DeleteMapping
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public ResponseEntity<Void> clearCart(
+            @Parameter(description = "ID do usuário") @PathVariable Long userId) {
+        cartService.clearCart(userId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Obtém o carrinho de um usuário", description = "Retorna os detalhes do carrinho de compras de um usuário, criando um se não existir.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Carrinho retornado com sucesso", content = @Content(schema = @Schema(implementation = Cart.class))),
+            @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+    })
+    @GetMapping
+    public ResponseEntity<Cart> getCartByUserId(
+            @Parameter(description = "ID do usuário") @PathVariable Long userId) {
+        Cart cart = cartService.getOrCreateCart(userId);
+        // Força o carregamento dos itens do carrinho para serialização
+        cart.getItems().size();
+        return ResponseEntity.ok(cart);
+    }
+
+    // --- NOVO ENDPOINT: Finalizar Carrinho e Criar Pedido ---
+    @Operation(summary = "Finaliza o carrinho e cria um novo pedido", description = "Converte o carrinho atual de um usuário em um pedido fechado, copiando os dados do endereço de entrega e dos itens.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Pedido criado com sucesso", content = @Content(schema = @Schema(implementation = Order.class))),
+            @ApiResponse(responseCode = "400", description = "Carrinho vazio ou endereço/usuário inválido"),
+            @ApiResponse(responseCode = "404", description = "Usuário, carrinho ou endereço de entrega não encontrado")
+    })
+    @PostMapping("/{cartId}/checkout") // Rota para finalizar um carrinho específico
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseEntity<Order> checkoutCart(
+            @Parameter(description = "ID do usuário") @PathVariable Long userId,
+            @Parameter(description = "ID do carrinho a ser finalizado") @PathVariable Long cartId,
+            @Parameter(description = "ID do endereço de entrega selecionado") @RequestParam Long deliveryAddressId) {
+        Order newOrder = orderService.createOrderFromCart(userId, cartId, deliveryAddressId);
+        return ResponseEntity.ok(newOrder); // Retorna 200 OK, embora 201 Created também seja aceitável
     }
 }
